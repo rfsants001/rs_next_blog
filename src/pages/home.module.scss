@@ -1,1 +1,30 @@
-// TODO
+.post {
+
+    .title {
+        margin-bottom: 10px;
+    }
+
+    .subtitle {
+        margin-bottom: 10px;
+    }
+
+    .icons_group {
+        display: flex;
+        align-content: center;
+
+        span {
+            
+            .icon {
+                margin-right: 8px;
+            }
+
+            & + span {
+                margin-left: 24px;
+            }
+        }
+    }
+
+    & + .post {
+        margin: 48px 0;
+    }
+}
