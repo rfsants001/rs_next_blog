@@ -11,17 +11,6 @@
     .icons_group {
         display: flex;
         align-content: center;
-
-        span {
-            
-            .icon {
-                margin-right: 8px;
-            }
-
-            & + span {
-                margin-left: 24px;
-            }
-        }
     }
 
     & + .post {

@@ -1,5 +1,5 @@
 .container {
-    max-width: 1120px;
+    max-width: 721px;
     height: 100px;
     margin: 0 auto;
 
@@ -15,9 +15,19 @@
         line-height: 1.361rem;
       }
       
-      span {
+      span, time {
         color: var(--info);
         font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+
+        .icon {
+          margin-right: 8px;
+        }
+
+        & + span {
+            margin-left: 24px;
+        }
       }
       
       button {
@@ -28,6 +38,24 @@
         background: transparent;
         border: none;
         margin-top: 20px;
+        transition: filter .4s;
+
+        &:hover{
+          filter: brightness(.8);
+        }
+      }
+
+      aside {
+        background: var(--heading);
+        padding: 15px;
+        text-align: center;
+        border-radius: 4px;
+
+        font-weight: 600;
+        font-size: 1.125rem;
+
+        margin-top: 88px;
+
         transition: filter .4s;
 
         &:hover{

@@ -1,20 +1,29 @@
 import {  format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import Prismic from '@prismicio/client'
+
 import { GetStaticPaths, GetStaticProps } from 'next';
 import Head  from 'next/head';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
+
+import Prismic from '@prismicio/client'
 import { RichText } from 'prismic-dom';
+
 import { FiCalendar, FiClock, FiUser } from 'react-icons/fi';
+
+
 import Header from '../../components/Header';
 
 import { getPrismicClient } from '../../services/prismic';
 
 import commonStyles from '../../styles/common.module.scss';
 import styles from './post.module.scss';
+import { Comments } from '../../components/Comments';
 
 interface Post {
   first_publication_date: string | null;
+  last_publication_date: string | null;
+  uid: string;
   data: {
     title: string;
     banner: {
@@ -32,11 +41,17 @@ interface Post {
 
 interface PostProps {
   post: Post;
+  preview: boolean;
+  nextPost: Post | null ;
+  prevPost: Post | null;
 }
 
-export default function Post({post}: PostProps) {
+export default function Post({
+                  post, 
+                  preview,
+                  prevPost,
+                  nextPost,}: PostProps) {
   const router = useRouter();
-
   if(router.isFallback) {
     return <div>Carregando...</div>
   }
@@ -47,57 +62,110 @@ export default function Post({post}: PostProps) {
     const TextBody = RichText.asText(content.body);
     const split = TextBody.split(' ');
     const numberWords = split.length;
-
     const result = Math.ceil(numberWords / 200);
     return acc + result;
   }, 0);
+
+
 
   return (
     <>
       <Head>
         <title>{post.data.title} | spacetraveling</title>
       </Head>
-      <Header/>
-      <div>
-        <img src={post.data.banner.url} alt={post.data.title} />
+      <div className={commonStyles.container}>
+        <Header/>
       </div>
-      <main>
-        <article>
-          <h1>{post.data.title}</h1>
+        <div className={styles.banner}>
+          <img src={post.data.banner.url} alt={post.data.title} />
+        </div>
+        <div className={commonStyles.container}>
+          <main className={styles.container_post}>
+            <article className={styles.content}>
+              <h1>{post.data.title}</h1>
 
-          <div>
-            <footer>
-              <time>
-                <FiCalendar color="#bbbbbb" size={20} />
-                {format (
-                      parseISO(post.first_publication_date),
-                      'dd MMM yyyy',
+              <div className={styles.content_body}>
+                <footer>
+                  <time>
+                    <FiCalendar color="#bbbbbb" size={20} className={commonStyles.icon}/>
+                    {format (
+                          parseISO(post.first_publication_date),
+                          'dd MMM yyyy',
+                          {
+                            locale: ptBR,
+                          }
+                        )}
+                  </time>
+
+                  
+                  <span> 
+                    <FiUser color="#bbbbbb" size={20} className={commonStyles.icon}/> 
+                    {post.data.author}
+                  </span>
+                  
+                  <span>
+                    *editado em{' '}
+                    {format(
+                      parseISO(post.last_publication_date),
+                      "d MMM yyyy', às 'HH:mm",
                       {
                         locale: ptBR,
                       }
                     )}
-              </time>
+                  </span>
 
-              <FiUser color="#bbbbbb" size={20}/>
-              <span>{post.data.author}</span>
-              <FiClock color="#BBBBBB" size={20} />
-              <span>{readingTime} min</span>
-            </footer>
+                  <span>
+                    <FiClock color="#BBBBBB" size={20} className={commonStyles.icon}/>
+                    {readingTime} min
+                  </span>
+                </footer>
 
-            <main>
-              {post.data.content.map(item => (
-                <section>
-                  <h2>{item.heading}</h2>
+                <main className={styles.content_text}>
+                  {post.data.content.map(item => (
+                    <section>
+                      <h2>{item.heading}</h2>
 
-                  <article dangerouslySetInnerHTML={{
-                       __html: RichText.asHtml(item.body),
-                    }} />
-                </section>
-              ))}
-            </main>
-          </div>
-        </article>
-      </main>
+                      <article dangerouslySetInnerHTML={{
+                          __html: RichText.asHtml(item.body),
+                        }} />
+                    </section>
+                  ))}
+                </main>
+              </div>
+            </article>
+
+            <div className={styles.navigatePost}>
+              {prevPost && (
+                <Link href={`/post/${prevPost.uid}`}>
+                  <a className={styles.prevPost}>
+                    {prevPost.data.title}
+                    <span>Post anterior</span>
+                  </a>
+                </Link>
+              )}
+              {nextPost && (
+                <Link href={`/post/${nextPost.uid}`}>
+                  <a className={styles.nextPost}>
+                    {nextPost.data.title}
+                    <span>Post anterior</span>
+                  </a>
+                </Link>
+              )}
+            </div>
+
+            <div className={commonStyles.comment} id="comments">
+              <Comments />
+            </div>
+
+            {preview && (
+              <aside className={commonStyles.previewExit}>
+                <Link href="/api/exit-preview">
+                  <a>Sair do modo Preview</a>
+                </Link>
+              </aside>
+            )}
+          </main>
+        </div>
     </>
   )
 } 
@@ -137,8 +205,29 @@ export const getStaticProps: GetStaticProps = async ({
     }
   }
 
+  const prevPost = (
+    await prismic.query(Prismic.predicates.at('document.type', 'posts'), {
+      pageSize: 1,
+      after: response.uid,
+      orderings: '[document.first_publication_date desc]',
+      fetch: ['posts.title']
+    })
+  ).results[0];
+
+  const nextPost = (
+    await prismic.query(Prismic.predicates.at('document.type', 'posts'), {
+      pageSize: 1,
+      after: response.uid,
+      orderings: '[document.first_publication_date]',
+      fetch: ['posts.title'],
+    })
+  ).results[0];
+
+
+
   const post = {
     first_publication_date: response.first_publication_date,
+    last_publication_date: response.last_publication_date,
     uid: response.uid,
     data: {
       title: response.data.title,
@@ -155,6 +244,8 @@ export const getStaticProps: GetStaticProps = async ({
     props: {
       post,
       preview,
+      prevPost: prevPost ?? null,
+      nextPost: nextPost ?? null,
     },
     revalidate: 60 * 60 * 24, //24hs
   };

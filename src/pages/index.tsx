@@ -33,9 +33,10 @@ interface PostPagination {
 
 interface HomeProps {
   postsPagination: PostPagination;
+  preview: Boolean;
 }
 
-export default function Home({postsPagination: {next_page, results}}:HomeProps): JSX.Element {
+export default function Home({postsPagination: {next_page, results}, preview}:HomeProps) {
 
   const [posts, setPosts] = useState(results);
   const [nextPage, setNextPage] = useState(next_page);
@@ -64,8 +65,8 @@ export default function Home({postsPagination: {next_page, results}}:HomeProps):
                 <h3 className={styles.title}>{post.data.title}</h3>
                 <p className={styles.subtitle}>{post.data.subtitle}</p>
                 <div className={styles.icons_group}>
-                  <span>
-                    <FiCalendar className={styles.icon}/>
+                  <time>
+                    <FiCalendar className={commonStyles.icon}/>
                     {format (
                       parseISO(post.first_publication_date),
                       'dd MMM yyyy',
@@ -73,9 +74,9 @@ export default function Home({postsPagination: {next_page, results}}:HomeProps):
                         locale: ptBR,
                       }
                     )}
-                  </span>
+                  </time>
                   <span>
-                    <FiUser className={styles.icon}/>
+                    <FiUser className={commonStyles.icon}/>
                     {post.data.author}
                   </span>
                 </div>
@@ -90,12 +91,23 @@ export default function Home({postsPagination: {next_page, results}}:HomeProps):
           </button>
         )}
 
+        {preview && (
+          <aside>
+            <Link href="api/exit-preview">
+              <a>Sair do modo Preview</a>
+            </Link>
+          </aside>
+		     )}
+
       </main>
      </>
    )
 }
 
-export const getStaticProps: GetStaticProps = async () => {
+export const getStaticProps: GetStaticProps<HomeProps> = async ({
+  preview = false,
+  previewData,
+}) => {
    const prismic = getPrismicClient();
    const postsResponse = await prismic.query([
       Prismic.predicates.at('document.type', 'posts')
@@ -106,6 +118,7 @@ export const getStaticProps: GetStaticProps = async () => {
         'posts.subtitle', 
         'posts.author'],
         pageSize: 1,
+        ref: previewData?.ref ?? null,
     }
    );
 
@@ -126,7 +139,8 @@ export const getStaticProps: GetStaticProps = async () => {
        postsPagination: {
          results: posts,
          next_page: postsResponse.next_page,
-       }
+       },
+       preview
      }
    }
 };
